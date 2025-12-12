@@ -1,0 +1,7 @@
+{
+  "name": "P2P 3D Spatial Room",
+  "description": "A multiplayer 3D environment where users can join a room via P2P ID, walk, jump, and see each other in real-time.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
