@@ -8,6 +8,13 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
+
+// Remove the HTML loader once JS executes
+const loader = document.getElementById('loading-overlay');
+if (loader) {
+    loader.style.display = 'none';
+}
+
 root.render(
   <React.StrictMode>
     <App />
