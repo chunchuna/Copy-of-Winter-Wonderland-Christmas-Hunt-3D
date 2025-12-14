@@ -25,6 +25,7 @@ export const useP2P = (localId: string) => {
     position: { x: 0, y: 5, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
     color: generateRandomColor(),
+    isFlashlightOn: false,
   });
 
   // Initialize Peer
@@ -77,6 +78,7 @@ export const useP2P = (localId: string) => {
             position: { x: 0, y: 10, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
             color: data.payload.color || generateRandomColor(),
+            isFlashlightOn: false,
           };
           
           setPlayers(prev => {
@@ -93,11 +95,16 @@ export const useP2P = (localId: string) => {
 
         case MessageType.UPDATE:
           // A client sent their position update
-          const { id, position, rotation } = data.payload;
+          const { id, position, rotation, isFlashlightOn } = data.payload;
           setPlayers(prev => {
             if (!prev[id]) return prev;
             const updated = { ...prev };
-            updated[id] = { ...updated[id], position, rotation };
+            updated[id] = { 
+                ...updated[id], 
+                position, 
+                rotation,
+                isFlashlightOn: isFlashlightOn ?? false 
+            };
             return updated;
           });
           break;
@@ -225,7 +232,8 @@ export const useP2P = (localId: string) => {
           payload: { 
             id: localId, 
             position: sanitizeVec(localPlayerRef.current.position), 
-            rotation: sanitizeVec(localPlayerRef.current.rotation)
+            rotation: sanitizeVec(localPlayerRef.current.rotation),
+            isFlashlightOn: localPlayerRef.current.isFlashlightOn
           } 
         });
       }
@@ -234,9 +242,10 @@ export const useP2P = (localId: string) => {
     return () => clearInterval(interval);
   }, [status, isHost, players, localId, lightOn]);
 
-  const updateLocalState = useCallback((pos: Vector3, rot: Vector3) => {
+  const updateLocalState = useCallback((pos: Vector3, rot: Vector3, isFlashlightOn: boolean) => {
     localPlayerRef.current.position = pos;
     localPlayerRef.current.rotation = rot;
+    localPlayerRef.current.isFlashlightOn = isFlashlightOn;
   }, []);
 
   return {

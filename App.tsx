@@ -161,7 +161,8 @@ const App: React.FC = () => {
         )}
         
         <div className="mt-4 pt-2 border-t border-white/10 text-[10px] text-gray-500 text-center">
-            Click to Lock Mouse • WASD to Move • Space to Jump
+            Click to Lock Mouse • WASD Move • Space Jump<br/>
+            Press 'T' for Flashlight
         </div>
       </div>
 

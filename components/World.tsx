@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody } from '@react-three/rapier';
-import { Box, Cylinder } from '@react-three/drei';
+import { Box } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface WorldProps {
@@ -71,6 +71,117 @@ const Snow = () => {
   );
 };
 
+const Fireplace = () => {
+    const lightRef = useRef<THREE.PointLight>(null);
+    const particlesRef = useRef<THREE.Group>(null);
+    
+    useFrame((state) => {
+        // Flicker effect for light
+        // MODIFIED: Increased base intensity from 2 to 6 for brighter fire
+        if (lightRef.current) {
+            lightRef.current.intensity = 6 + Math.sin(state.clock.elapsedTime * 10) * 1.0 + Math.random() * 0.5;
+        }
+
+        // Fire particle animation
+        if (particlesRef.current) {
+            particlesRef.current.children.forEach((child: any, i) => {
+                const speed = 1 + i * 0.5;
+                child.position.y = (Math.sin(state.clock.elapsedTime * speed + i) * 0.15) + 0.2;
+                child.scale.setScalar(0.8 + Math.sin(state.clock.elapsedTime * speed * 2 + i) * 0.2);
+                child.rotation.z = Math.sin(state.clock.elapsedTime + i) * 0.2;
+            });
+        }
+    });
+
+    return (
+        // Positioned inside the wall hole at Z=6
+        // Moved up slightly so hearth sits on floor
+        <group position={[0, 1.25, 6]} rotation={[0, Math.PI, 0]}>
+             
+             {/* Frame/Mantel Structure */}
+             
+             {/* Left Pillar */}
+             <mesh position={[-1.1, 0, 0]} castShadow receiveShadow>
+                <boxGeometry args={[0.6, 2.5, 0.8]} />
+                <meshStandardMaterial color="#5d4037" roughness={0.9} />
+             </mesh>
+             
+             {/* Right Pillar */}
+             <mesh position={[1.1, 0, 0]} castShadow receiveShadow>
+                <boxGeometry args={[0.6, 2.5, 0.8]} />
+                <meshStandardMaterial color="#5d4037" roughness={0.9} />
+             </mesh>
+
+             {/* Top Mantel */}
+             <mesh position={[0, 1.25, 0.1]} castShadow receiveShadow>
+                <boxGeometry args={[3.2, 0.6, 1.0]} />
+                <meshStandardMaterial color="#4e342e" roughness={0.8} />
+             </mesh>
+
+             {/* Hearth (Base) */}
+             <mesh position={[0, -1.25, 0.2]} receiveShadow>
+                <boxGeometry args={[3.2, 0.3, 1.2]} />
+                <meshStandardMaterial color="#3e2723" roughness={1} />
+             </mesh>
+
+             {/* Inner Box (The fire chamber) - Recessed */}
+             {/* Back Wall */}
+             <mesh position={[0, 0, -0.2]}>
+                <boxGeometry args={[1.6, 2.2, 0.2]} />
+                {/* Lighter color brick to ensure visibility even in shadow */}
+                <meshStandardMaterial color="#795548" roughness={1} /> 
+             </mesh>
+             {/* Side Walls of chamber */}
+             <mesh position={[-0.7, 0, 0.2]}>
+                <boxGeometry args={[0.2, 2.2, 0.8]} />
+                <meshStandardMaterial color="#5d4037" />
+             </mesh>
+             <mesh position={[0.7, 0, 0.2]}>
+                 <boxGeometry args={[0.2, 2.2, 0.8]} />
+                 <meshStandardMaterial color="#5d4037" />
+             </mesh>
+             
+             {/* Fire Logs */}
+             <group position={[0, -1.0, 0.2]}>
+                <mesh position={[-0.2, 0.1, 0]} rotation={[0, 0, 0.3]}>
+                    <cylinderGeometry args={[0.08, 0.08, 0.7]} />
+                    <meshStandardMaterial color="#3e2723" />
+                </mesh>
+                 <mesh position={[0.2, 0.1, 0]} rotation={[0, 0, -0.3]}>
+                    <cylinderGeometry args={[0.08, 0.08, 0.7]} />
+                    <meshStandardMaterial color="#3e2723" />
+                </mesh>
+                 <mesh position={[0, 0.2, 0]} rotation={[0, 0, Math.PI/2]}>
+                    <cylinderGeometry args={[0.08, 0.08, 0.7]} />
+                    <meshStandardMaterial color="#3e2723" />
+                </mesh>
+             </group>
+
+             {/* Fire Particles - Emissive for visibility */}
+             <group ref={particlesRef} position={[0, -0.8, 0.2]}>
+                {[...Array(8)].map((_, i) => (
+                     <mesh key={i} position={[ (i-3.5)*0.1, 0, 0]}>
+                        <planeGeometry args={[0.25, 0.5]} />
+                        {/* Use MeshBasicMaterial or high emissive standard material */}
+                        <meshBasicMaterial color="#ff5722" transparent opacity={0.9} side={THREE.DoubleSide} />
+                     </mesh>
+                ))}
+             </group>
+
+             {/* Fire Light Source */}
+             <pointLight 
+                ref={lightRef}
+                position={[0, -0.5, 0.5]} 
+                color="#ff6d00" 
+                distance={25} 
+                decay={2} 
+                castShadow
+                shadow-bias={-0.001}
+            />
+        </group>
+    )
+}
+
 const ChristmasTree = (props: any) => {
   return (
     <group {...props}>
@@ -95,7 +206,7 @@ const ChristmasTree = (props: any) => {
       <mesh position={[0, 5, 0]}>
         <dodecahedronGeometry args={[0.3]} />
         <meshBasicMaterial color="#ffd700" />
-        <pointLight intensity={2} distance={5} color="#ffd700" decay={2} />
+        <pointLight intensity={3} distance={8} color="#ffd700" decay={2} />
       </mesh>
 
       {[...Array(12)].map((_, i) => {
@@ -120,17 +231,14 @@ const ChristmasTree = (props: any) => {
 const Chandelier = ({ lightOn }: { lightOn: boolean }) => {
     return (
         <group position={[0, 5, 0]}>
-            {/* Cord */}
             <mesh position={[0, 0.5, 0]}>
                 <cylinderGeometry args={[0.05, 0.05, 1]} />
                 <meshStandardMaterial color="#222" />
             </mesh>
-            {/* Fixture */}
             <mesh position={[0, 0, 0]}>
                 <cylinderGeometry args={[0.8, 0.1, 0.5]} />
                 <meshStandardMaterial color="#443" metalness={0.8} />
             </mesh>
-            {/* Bulbs */}
             {[0, 1, 2, 3].map((i) => {
                 const angle = (i / 4) * Math.PI * 2;
                 return (
@@ -150,32 +258,22 @@ const Chandelier = ({ lightOn }: { lightOn: boolean }) => {
 
 const LightSwitch = ({ onToggle, lightOn }: { onToggle: () => void, lightOn: boolean }) => {
     const [hovered, setHovered] = useState(false);
-    
     return (
         <group position={[5.95, 1.5, 2]}> 
-            {/* Backplate */}
-            <mesh 
-                position={[0, 0, 0]} 
-                rotation={[0, 0, 0]}
-            >
+            <mesh position={[0, 0, 0]} rotation={[0, 0, 0]}>
                 <boxGeometry args={[0.1, 0.4, 0.3]} />
                 <meshStandardMaterial color="#ddd" />
             </mesh>
-            {/* Switch Lever */}
             <mesh 
                 position={[0.05, 0, 0]} 
                 rotation={[0, 0, lightOn ? -0.4 : 0.4]}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onToggle();
-                }}
+                onClick={(e) => { e.stopPropagation(); onToggle(); }}
                 onPointerOver={() => setHovered(true)}
                 onPointerOut={() => setHovered(false)}
             >
                 <boxGeometry args={[0.05, 0.15, 0.1]} />
                 <meshStandardMaterial color={hovered ? "#ffaa33" : "#fff"} />
             </mesh>
-            {/* Indicator Light */}
              <mesh position={[0.05, 0.12, 0]}>
                  <sphereGeometry args={[0.03]} />
                  <meshBasicMaterial color={lightOn ? "green" : "red"} />
@@ -188,8 +286,8 @@ const CabinStructure = () => {
     const size = 12;
     const height = 6;
     const thick = 0.5;
-    const woodColor = "#5d4037";
     const wallColor = "#4e342e";
+    const woodColor = "#5d4037";
 
     return (
         <group>
@@ -216,13 +314,41 @@ const CabinStructure = () => {
                 </Box>
             </RigidBody>
 
-            {/* Front Wall (Negative X, Window Side) */}
-            {/* Right Wall (Positive Z) */}
-            <RigidBody type="fixed" position={[0, height/2, size/2]}>
-                <Box args={[size, height, thick]}>
-                    <meshStandardMaterial color={wallColor} />
+            {/* Right Wall (Positive Z) - WITH HOLE FOR FIREPLACE */}
+            {/* Split into Left, Right, and Top segments to create a gap at bottom center */}
+            
+            {/* 1. Left segment of Right Wall */}
+            {/* Starts at -6, ends at -1. Width 5. Center -3.5 */}
+            <RigidBody type="fixed" position={[ -3.5, height/2, size/2]}>
+                <Box args={[5, height, thick]}>
+                     <meshStandardMaterial color={wallColor} />
                 </Box>
             </RigidBody>
+            
+            {/* 2. Right segment of Right Wall */}
+            {/* Starts at 1, ends at 6. Width 5. Center 3.5 */}
+             <RigidBody type="fixed" position={[ 3.5, height/2, size/2]}>
+                <Box args={[5, height, thick]}>
+                     <meshStandardMaterial color={wallColor} />
+                </Box>
+            </RigidBody>
+
+            {/* 3. Top segment of Right Wall (Above fireplace) */}
+            {/* Gap is width 2 (-1 to 1). Wall Height 6. Fireplace Height ~2.5. */}
+            {/* Top starts y=2.5, ends y=6. Height 3.5. Center y = 2.5 + 1.75 = 4.25 */}
+            <RigidBody type="fixed" position={[ 0, 4.25, size/2]}>
+                <Box args={[2, 3.5, thick]}>
+                     <meshStandardMaterial color={wallColor} />
+                </Box>
+            </RigidBody>
+            
+            {/* Fireplace Backing (Outdoor enclosure behind fireplace) */}
+             <RigidBody type="fixed" position={[ 0, 1.25, size/2 + 0.5]}>
+                <Box args={[2.5, 3, thick]}>
+                     <meshStandardMaterial color="#3e2723" />
+                </Box>
+            </RigidBody>
+
 
             {/* Left Wall (Negative Z) */}
             <RigidBody type="fixed" position={[0, height/2, -size/2]}>
@@ -269,13 +395,10 @@ const CabinStructure = () => {
 const OutsideView = () => {
     return (
         <group position={[-20, 0, 0]}>
-             {/* Ground */}
             <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, -0.1, 0]}>
                 <planeGeometry args={[40, 40]} />
                 <meshStandardMaterial color="#eceff1" />
             </mesh>
-            
-            {/* Trees */}
             {[...Array(20)].map((_, i) => (
                 <group key={i} position={[Math.random() * 20 - 10, 0, Math.random() * 40 - 20]}>
                      <mesh position={[0, 2, 0]}>
@@ -298,68 +421,26 @@ export const World: React.FC<WorldProps> = ({ lightOn, onToggleLight }) => {
     <group>
       <InteractionManager />
       <CabinStructure />
-      
-      {/* Centerpiece */}
       <ChristmasTree position={[0, 0, 0]} />
       <Chandelier lightOn={lightOn} />
-      
-      {/* Switch on the Back Wall (X=6) */}
+      <Fireplace />
       <LightSwitch onToggle={onToggleLight} lightOn={lightOn} />
-
-      {/* Collision for Tree base */}
       <RigidBody type="fixed" position={[0, 0.5, 0]}>
          <cylinderGeometry args={[0.5, 0.5, 1]} />
       </RigidBody>
-
-      {/* Outside Scenery */}
       <OutsideView />
-
-      {/* Atmosphere Lights */}
-      {/* 环境光 - 全局基础亮度 */}
-      <ambientLight intensity={0.15} color="#b3e5fc" /> 
       
-      {/* 
-        [1] 主灯 Main Ceiling Light (受开关控制)
-        position: 位置
-        intensity: 亮度 (开时为2，关时为0)
-      */}
-      <pointLight 
-        position={[0, 4.5, 0]} 
-        intensity={lightOn ? 2 : 0} 
-        color="#ffaa33" 
-        distance={50} 
-        decay={2} 
-        castShadow 
-      />
+      {/* MODIFIED: Increased ambient light intensity from 0.1 to 0.4 */}
+      <ambientLight intensity={0.1} color="#b3e5fc" /> 
       
-      {/* 
-        [2] 暖色填充光 Warm Fill Light (辅助照明，营造氛围) 
-      */}
-      <pointLight 
-        position={[3, 4, 3]} 
-        intensity={lightOn ? 0.5 : 0} 
-        color="#ff8800" 
-        distance={10} 
-        decay={2} 
-      />
-
-      {/* 
-        [3] 圣诞树发光 Tree Glow (常亮) 
-      */}
+      {/* MODIFIED: Increased main light intensity from 2 to 5 */}
+      <pointLight position={[0, 4.5, 0]} intensity={lightOn ? 10 : 0} color="#ffaa33" distance={20} decay={2} castShadow />
+      
+      {/* MODIFIED: Increased fill light intensity from 0.5 to 2 */}
+      <pointLight position={[3, 4, 3]} intensity={lightOn ? 5 : 0} color="#ff8800" distance={10} decay={2} />
+      
       <pointLight position={[0, 2, 0]} intensity={1.5} color="#ffcc00" distance={5} decay={2} />
-
-      {/* 
-        [4] 月光 Moonlight (从窗外射入) 
-      */}
-      <spotLight 
-        position={[-20, 15, 0]} 
-        target-position={[0, 0, 0]}
-        intensity={0.8}
-        color="#e1f5fe"
-        angle={0.5}
-        penumbra={0.5}
-        castShadow
-      />
+      <spotLight position={[-20, 15, 0]} target-position={[0, 0, 0]} intensity={0.8} color="#e1f5fe" angle={0.5} penumbra={0.5} castShadow />
     </group>
   );
 };

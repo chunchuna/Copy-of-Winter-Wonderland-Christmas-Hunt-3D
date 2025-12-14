@@ -9,6 +9,7 @@ export interface PlayerState {
   position: Vector3;
   rotation: Vector3; // Euler angles
   color: string;
+  isFlashlightOn: boolean; // Sync flashlight state
 }
 
 export enum MessageType {
