@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
-import { PointerLockControls } from '@react-three/drei';
+import { PointerLockControls, Html } from '@react-three/drei';
 import { useP2P } from './hooks/useP2P';
 import { generateShortId } from './utils';
 import { World } from './components/World';
 import { LocalPlayer } from './components/LocalPlayer';
 import { RemotePlayer } from './components/RemotePlayer';
 import { PlayerState } from './types';
-import { Users, Wifi, Copy, Play, User } from 'lucide-react';
 
 const LOCAL_ID = generateShortId();
 
@@ -29,6 +28,15 @@ const Crosshair = () => (
   />
 );
 
+const Loader = () => (
+  <Html center>
+    <div className="flex flex-col items-center justify-center bg-black/80 p-4 rounded text-white">
+      <div className="loader mb-2"></div>
+      <p>Loading Physics & World...</p>
+    </div>
+  </Html>
+);
+
 const App: React.FC = () => {
   const { 
     peerId, 
@@ -38,7 +46,6 @@ const App: React.FC = () => {
     hostGame, 
     joinGame, 
     updateLocalState,
-    isHost,
     lightOn,
     toggleLight
   } = useP2P(LOCAL_ID);
@@ -84,7 +91,7 @@ const App: React.FC = () => {
             {/* Username Input */}
             <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
                  <h2 className="text-sm font-semibold mb-2 flex items-center text-gray-300">
-                    <User className="w-4 h-4 mr-2" /> Your Name
+                    👤 Your Name
                  </h2>
                  <input
                   type="text"
@@ -98,7 +105,7 @@ const App: React.FC = () => {
 
             <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
               <h2 className="text-lg font-semibold mb-3 flex items-center">
-                <Play className="w-5 h-5 mr-2 text-green-400" /> Host a Room
+                🏠 Host a Room
               </h2>
               <button
                 onClick={handleHost}
@@ -122,7 +129,7 @@ const App: React.FC = () => {
 
             <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
               <h2 className="text-lg font-semibold mb-3 flex items-center">
-                <Users className="w-5 h-5 mr-2 text-red-400" /> Join Room
+                🔗 Join Room
               </h2>
               <div className="flex gap-2">
                 <input
@@ -166,7 +173,7 @@ const App: React.FC = () => {
               {status === 'connected' ? 'LIVE' : status.toUpperCase()}
             </span>
           </div>
-          <Wifi className="w-4 h-4 text-gray-400" />
+          <span>📶</span>
         </div>
 
         {peerId && (
@@ -179,7 +186,7 @@ const App: React.FC = () => {
               className="text-gray-400 hover:text-white transition-colors p-1"
               title="Copy ID"
             >
-              <Copy className="w-3 h-3" />
+              📋
             </button>
           </div>
         )}
@@ -218,19 +225,20 @@ const App: React.FC = () => {
 
       {/* 3D Scene */}
       <Canvas shadows camera={{ fov: 75 }}>
-        {/* Dark night background */}
         <color attach="background" args={['#050810']} />
-        
-        {/* Light fog for atmosphere */}
         <fog attach="fog" args={['#050810', 0, 40]} />
 
-        <Physics gravity={[0, -9.81, 0]}>
-          <World lightOn={lightOn} onToggleLight={toggleLight} />
-          <LocalPlayer onUpdate={updateLocalState} color={players[LOCAL_ID]?.color || '#fff'} />
-          {remotePlayers.map((p) => (
-            <RemotePlayer key={p.id} data={p} />
-          ))}
-        </Physics>
+        {/* Suspense is REQUIRED for Rapier physics to load properly without blocking the entire canvas */}
+        <Suspense fallback={<Loader />}>
+            <Physics gravity={[0, -9.81, 0]}>
+            <World lightOn={lightOn} onToggleLight={toggleLight} />
+            <LocalPlayer onUpdate={updateLocalState} color={players[LOCAL_ID]?.color || '#fff'} />
+            {remotePlayers.map((p) => (
+                <RemotePlayer key={p.id} data={p} />
+            ))}
+            </Physics>
+        </Suspense>
+        
         <PointerLockControls />
       </Canvas>
     </div>

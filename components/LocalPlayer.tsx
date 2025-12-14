@@ -13,10 +13,6 @@ interface Props {
 const SPEED = 5;
 const JUMP_FORCE = 5;
 
-// Global flag outside component to ensure camera init happens EXACTLY once per page load.
-// This prevents camera snapping if the component remounts or re-renders unexpectedly.
-let hasGlobalCameraInit = false;
-
 // SFX for Flashlight
 const FLASHLIGHT_SFX = "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3";
 
@@ -24,6 +20,9 @@ export const LocalPlayer: React.FC<Props> = ({ onUpdate, color }) => {
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const { camera, scene } = useThree();
   const controls = useKeyboardControls();
+  
+  // Track if camera has been initialized for this component instance
+  const cameraInitRef = useRef(false);
   
   // Flashlight State
   const [flashlightOn, setFlashlightOn] = useState(false);
@@ -60,11 +59,11 @@ export const LocalPlayer: React.FC<Props> = ({ onUpdate, color }) => {
   }, []);
 
   useEffect(() => {
-    // Only set the initial camera angle ONCE.
-    if (!hasGlobalCameraInit) {
+    // Only set the initial camera angle ONCE per mount
+    if (!cameraInitRef.current) {
         // Look at the center/tree
         camera.lookAt(0, 2, 0);
-        hasGlobalCameraInit = true;
+        cameraInitRef.current = true;
     }
   }, [camera]);
 
