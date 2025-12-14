@@ -22,6 +22,7 @@ export const useP2P = (localId: string) => {
   const connectionsRef = useRef<DataConnection[]>([]); // For Host: list of clients. For Client: [hostConnection]
   const localPlayerRef = useRef<PlayerState>({
     id: localId,
+    name: 'Player', // Default name
     position: { x: 0, y: 5, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
     color: generateRandomColor(),
@@ -71,13 +72,16 @@ export const useP2P = (localId: string) => {
     if (isHost) {
       switch (data.type) {
         case MessageType.JOIN:
-          // A new player wants to join. Payload contains their initial state info (color usually)
+          // A new player wants to join. Payload contains their initial state info
           const newPlayerId = conn.peer;
+          const { color, name } = data.payload;
+          
           const newPlayer: PlayerState = {
             id: newPlayerId,
+            name: name || `Guest-${newPlayerId.substring(0,4)}`,
             position: { x: 0, y: 10, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
-            color: data.payload.color || generateRandomColor(),
+            color: color || generateRandomColor(),
             isFlashlightOn: false,
           };
           
@@ -95,15 +99,17 @@ export const useP2P = (localId: string) => {
 
         case MessageType.UPDATE:
           // A client sent their position update
-          const { id, position, rotation, isFlashlightOn } = data.payload;
+          const { id, position, rotation, isFlashlightOn, name: updatedName } = data.payload;
           setPlayers(prev => {
             if (!prev[id]) return prev;
             const updated = { ...prev };
+            // We update everything including name in case they changed it (though unlikely mid-game)
             updated[id] = { 
                 ...updated[id], 
                 position, 
                 rotation,
-                isFlashlightOn: isFlashlightOn ?? false 
+                isFlashlightOn: isFlashlightOn ?? false,
+                name: updatedName || updated[id].name
             };
             return updated;
           });
@@ -160,7 +166,6 @@ export const useP2P = (localId: string) => {
         setPlayers(prev => {
           const next = { ...prev };
           delete next[conn.peer];
-          // We rely on the tick loop to broadcast deletion
           return next;
         });
       }
@@ -182,7 +187,8 @@ export const useP2P = (localId: string) => {
   };
 
   // Connect to a host
-  const joinGame = (hostId: string) => {
+  const joinGame = (hostId: string, name: string) => {
+    localPlayerRef.current.name = name; // Set name before connecting
     initPeer(); // Start own peer first
     // Wait for open
     const checkOpen = setInterval(() => {
@@ -190,18 +196,22 @@ export const useP2P = (localId: string) => {
         clearInterval(checkOpen);
         const conn = peerRef.current.connect(hostId);
         handleIncomingConnection(conn);
-        // Send initial Join
+        // Send initial Join with Name
         conn.on('open', () => {
             conn.send({ 
                 type: MessageType.JOIN, 
-                payload: { color: localPlayerRef.current.color } 
+                payload: { 
+                    color: localPlayerRef.current.color,
+                    name: localPlayerRef.current.name 
+                } 
             });
         });
       }
     }, 200);
   };
 
-  const hostGame = (roomId: string) => {
+  const hostGame = (roomId: string, name: string) => {
+    localPlayerRef.current.name = name; // Set name before hosting
     initPeer(roomId);
   };
 
@@ -222,7 +232,7 @@ export const useP2P = (localId: string) => {
         // Host broadcasts the authoritative state to everyone
         const fullState = { 
             players: { ...players, [localId]: localPlayerRef.current },
-            lightOn // Include light state in tick
+            lightOn 
         };
         broadcast({ type: MessageType.UPDATE, payload: fullState });
       } else {
@@ -231,13 +241,14 @@ export const useP2P = (localId: string) => {
           type: MessageType.UPDATE, 
           payload: { 
             id: localId, 
+            name: localPlayerRef.current.name,
             position: sanitizeVec(localPlayerRef.current.position), 
             rotation: sanitizeVec(localPlayerRef.current.rotation),
             isFlashlightOn: localPlayerRef.current.isFlashlightOn
           } 
         });
       }
-    }, 50); // 20 ticks per second
+    }, 50); 
 
     return () => clearInterval(interval);
   }, [status, isHost, players, localId, lightOn]);

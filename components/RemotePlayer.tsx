@@ -66,7 +66,7 @@ export const RemotePlayer: React.FC<Props> = ({ data }) => {
         outlineWidth={0.05}
         outlineColor="#000000"
       >
-        {data.id.substring(0, 5)}
+        {data.name || data.id.substring(0, 5)}
       </Text>
       
       {/* Player Body */}

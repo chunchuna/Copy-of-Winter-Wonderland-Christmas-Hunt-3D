@@ -8,7 +8,7 @@ import { World } from './components/World';
 import { LocalPlayer } from './components/LocalPlayer';
 import { RemotePlayer } from './components/RemotePlayer';
 import { PlayerState } from './types';
-import { Users, Wifi, Copy, Play } from 'lucide-react';
+import { Users, Wifi, Copy, Play, User } from 'lucide-react';
 
 const LOCAL_ID = generateShortId();
 
@@ -27,17 +27,26 @@ const App: React.FC = () => {
   } = useP2P(LOCAL_ID);
 
   const [roomIdInput, setRoomIdInput] = useState('');
+  const [username, setUsername] = useState('');
   const [hasJoined, setHasJoined] = useState(false);
 
   const handleHost = () => {
+    if (!username) {
+        alert("Please enter a username");
+        return;
+    }
     const newRoomId = generateShortId();
-    hostGame(newRoomId);
+    hostGame(newRoomId, username);
     setHasJoined(true);
   };
 
   const handleJoin = () => {
+    if (!username) {
+        alert("Please enter a username");
+        return;
+    }
     if (!roomIdInput) return;
-    joinGame(roomIdInput);
+    joinGame(roomIdInput, username);
     setHasJoined(true);
   };
 
@@ -54,13 +63,32 @@ const App: React.FC = () => {
           <p className="text-gray-400 text-center mb-8">Enter a cozy Christmas cabin</p>
 
           <div className="space-y-6">
+            
+            {/* Username Input */}
+            <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                 <h2 className="text-sm font-semibold mb-2 flex items-center text-gray-300">
+                    <User className="w-4 h-4 mr-2" /> Your Name
+                 </h2>
+                 <input
+                  type="text"
+                  placeholder="Enter your nickname"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                  maxLength={12}
+                />
+            </div>
+
             <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
               <h2 className="text-lg font-semibold mb-3 flex items-center">
                 <Play className="w-5 h-5 mr-2 text-green-400" /> Host a Room
               </h2>
               <button
                 onClick={handleHost}
-                className="w-full py-3 px-4 bg-green-700 hover:bg-green-800 rounded-lg font-medium transition-colors shadow-lg hover:shadow-green-500/20"
+                disabled={!username}
+                className={`w-full py-3 px-4 rounded-lg font-medium transition-colors shadow-lg ${
+                    username ? 'bg-green-700 hover:bg-green-800 hover:shadow-green-500/20' : 'bg-gray-600 cursor-not-allowed'
+                }`}
               >
                 Create New Room
               </button>
@@ -89,7 +117,10 @@ const App: React.FC = () => {
                 />
                 <button
                   onClick={handleJoin}
-                  className="px-6 py-2 bg-red-700 hover:bg-red-800 rounded-lg font-medium transition-colors shadow-lg hover:shadow-red-500/20"
+                  disabled={!username || !roomIdInput}
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors shadow-lg ${
+                    username && roomIdInput ? 'bg-red-700 hover:bg-red-800 hover:shadow-red-500/20' : 'bg-gray-600 cursor-not-allowed'
+                  }`}
                 >
                   Join
                 </button>
@@ -143,11 +174,11 @@ const App: React.FC = () => {
                 style={{ backgroundColor: p.color, boxShadow: `0 0 10px ${p.color}` }}
               />
               <div className="flex flex-col">
-                <span className="font-mono text-xs text-gray-300">
-                  {p.id === LOCAL_ID ? `${p.id} (YOU)` : p.id}
+                <span className="font-bold text-xs text-gray-200">
+                  {p.id === LOCAL_ID ? `${p.name} (YOU)` : p.name}
                 </span>
                 <span className="text-[10px] text-gray-500">
-                  {Math.round(p.position.x)}, {Math.round(p.position.z)}
+                  ID: {p.id.substring(0,4)}
                 </span>
               </div>
             </li>

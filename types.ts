@@ -6,6 +6,7 @@ export interface Vector3 {
 
 export interface PlayerState {
   id: string;
+  name: string; // Added name field
   position: Vector3;
   rotation: Vector3; // Euler angles
   color: string;
