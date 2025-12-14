@@ -13,6 +13,10 @@ interface Props {
 const SPEED = 5;
 const JUMP_FORCE = 5;
 
+// Global flag outside component to ensure camera init happens EXACTLY once per page load.
+// This prevents camera snapping if the component remounts or re-renders unexpectedly.
+let hasGlobalCameraInit = false;
+
 export const LocalPlayer: React.FC<Props> = ({ onUpdate, color }) => {
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const { camera } = useThree();
@@ -24,11 +28,11 @@ export const LocalPlayer: React.FC<Props> = ({ onUpdate, color }) => {
   const sideVector = new THREE.Vector3();
 
   useEffect(() => {
-    // Initial spawn pos - offset from center to avoid being inside the tree
-    if (rigidBodyRef.current) {
-        rigidBodyRef.current.setTranslation({ x: 3, y: 2, z: 3 }, true);
-        // Look at the tree
+    // Only set the initial camera angle ONCE.
+    if (!hasGlobalCameraInit) {
+        // Look at the center/tree
         camera.lookAt(0, 2, 0);
+        hasGlobalCameraInit = true;
     }
   }, [camera]);
 
@@ -73,7 +77,7 @@ export const LocalPlayer: React.FC<Props> = ({ onUpdate, color }) => {
       colliders={false} 
       mass={1} 
       type="dynamic" 
-      position={[3, 2, 3]} 
+      position={[3, 2, 3]} // Set initial position here via prop
       enabledRotations={[false, false, false]} // Prevent tipping over
     >
       <CapsuleCollider args={[0.75, 0.5]} />

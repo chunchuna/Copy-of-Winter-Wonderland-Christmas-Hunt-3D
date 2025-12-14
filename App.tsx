@@ -21,7 +21,9 @@ const App: React.FC = () => {
     hostGame, 
     joinGame, 
     updateLocalState,
-    isHost
+    isHost,
+    lightOn,
+    toggleLight
   } = useP2P(LOCAL_ID);
 
   const [roomIdInput, setRoomIdInput] = useState('');
@@ -138,7 +140,7 @@ const App: React.FC = () => {
             <li key={p.id} className="flex items-center gap-2 text-sm bg-white/5 p-2 rounded">
               <div 
                 className="w-2 h-8 rounded-full shadow-[0_0_10px]" 
-                style={{ backgroundColor: p.color, shadowColor: p.color }}
+                style={{ backgroundColor: p.color, boxShadow: `0 0 10px ${p.color}` }}
               />
               <div className="flex flex-col">
                 <span className="font-mono text-xs text-gray-300">
@@ -172,7 +174,7 @@ const App: React.FC = () => {
         <fog attach="fog" args={['#050810', 0, 40]} />
 
         <Physics gravity={[0, -9.81, 0]}>
-          <World />
+          <World lightOn={lightOn} onToggleLight={toggleLight} />
           <LocalPlayer onUpdate={updateLocalState} color={players[LOCAL_ID]?.color || '#fff'} />
           {remotePlayers.map((p) => (
             <RemotePlayer key={p.id} data={p} />

@@ -15,7 +15,8 @@ export enum MessageType {
   JOIN = 'JOIN',
   WELCOME = 'WELCOME',
   UPDATE = 'UPDATE',
-  PLAYER_LEFT = 'PLAYER_LEFT'
+  PLAYER_LEFT = 'PLAYER_LEFT',
+  TOGGLE_LIGHT = 'TOGGLE_LIGHT'
 }
 
 export interface NetworkMessage {

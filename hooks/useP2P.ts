@@ -14,6 +14,9 @@ export const useP2P = (localId: string) => {
   
   // The definitive state of all players (including local)
   const [players, setPlayers] = useState<Record<string, PlayerState>>({});
+  
+  // World State
+  const [lightOn, setLightOn] = useState(true);
 
   const peerRef = useRef<Peer | null>(null);
   const connectionsRef = useRef<DataConnection[]>([]); // For Host: list of clients. For Client: [hostConnection]
@@ -79,7 +82,11 @@ export const useP2P = (localId: string) => {
           setPlayers(prev => {
             const next = { ...prev, [newPlayerId]: newPlayer };
             // Broadcast full world state to everyone (including the new joiner)
-            broadcast({ type: MessageType.UPDATE, payload: next });
+            const payload = {
+                players: next,
+                lightOn
+            };
+            broadcast({ type: MessageType.UPDATE, payload: payload });
             return next;
           });
           break;
@@ -88,12 +95,15 @@ export const useP2P = (localId: string) => {
           // A client sent their position update
           const { id, position, rotation } = data.payload;
           setPlayers(prev => {
-            // Update this specific player's data in the host's source of truth
             if (!prev[id]) return prev;
             const updated = { ...prev };
             updated[id] = { ...updated[id], position, rotation };
             return updated;
           });
+          break;
+
+        case MessageType.TOGGLE_LIGHT:
+          setLightOn(prev => !prev);
           break;
       }
     } 
@@ -102,17 +112,16 @@ export const useP2P = (localId: string) => {
       switch (data.type) {
         case MessageType.UPDATE:
           // Host sent the full world state
-          const worldState = data.payload as Record<string, PlayerState>;
-          // Remove ourselves from the received state to avoid overwriting local prediction
-          // But actually, for this simple demo, we can just merge. 
-          // However, to prevent "jitter" on self, we typically filter self out or ignore self updates.
+          // Payload structure: { players: Record<string, PlayerState>, lightOn: boolean }
+          const { players: worldPlayers, lightOn: serverLightOn } = data.payload;
           
+          if (serverLightOn !== undefined) {
+             setLightOn(serverLightOn);
+          }
+
           setPlayers(prev => {
-            const nextState = { ...worldState };
-            // Ensure we keep our local color if host didn't have it correct (edge case), 
-            // but mostly just trust the host for others.
+            const nextState = { ...worldPlayers };
             // We do NOT overwrite our own local position from the server to prevent lag/jitter loop
-            // unless we want server reconciliation. For this demo, client is authoritative over self.
             if (nextState[localId]) {
               delete nextState[localId];
             }
@@ -121,7 +130,7 @@ export const useP2P = (localId: string) => {
           break;
       }
     }
-  }, [isHost, localId]);
+  }, [isHost, localId, lightOn]);
 
   const handleIncomingConnection = (conn: DataConnection) => {
     conn.on('data', (data: any) => handleData(data, conn));
@@ -130,7 +139,10 @@ export const useP2P = (localId: string) => {
       connectionsRef.current.push(conn);
       // If host, send current state immediately
       if (isHost) {
-        conn.send({ type: MessageType.UPDATE, payload: players });
+        conn.send({ 
+            type: MessageType.UPDATE, 
+            payload: { players, lightOn } 
+        });
       }
     });
 
@@ -141,7 +153,7 @@ export const useP2P = (localId: string) => {
         setPlayers(prev => {
           const next = { ...prev };
           delete next[conn.peer];
-          broadcast({ type: MessageType.UPDATE, payload: next });
+          // We rely on the tick loop to broadcast deletion
           return next;
         });
       }
@@ -186,6 +198,14 @@ export const useP2P = (localId: string) => {
     initPeer(roomId);
   };
 
+  const toggleLight = () => {
+    if (isHost) {
+        setLightOn(prev => !prev);
+    } else {
+        sendToHost({ type: MessageType.TOGGLE_LIGHT, payload: null });
+    }
+  };
+
   // Frequent update loop (tick)
   useEffect(() => {
     if (status !== 'connected') return;
@@ -193,8 +213,10 @@ export const useP2P = (localId: string) => {
     const interval = setInterval(() => {
       if (isHost) {
         // Host broadcasts the authoritative state to everyone
-        // Merging local host player state into the broadcast
-        const fullState = { ...players, [localId]: localPlayerRef.current };
+        const fullState = { 
+            players: { ...players, [localId]: localPlayerRef.current },
+            lightOn // Include light state in tick
+        };
         broadcast({ type: MessageType.UPDATE, payload: fullState });
       } else {
         // Client sends its local state to host
@@ -210,12 +232,12 @@ export const useP2P = (localId: string) => {
     }, 50); // 20 ticks per second
 
     return () => clearInterval(interval);
-  }, [status, isHost, players, localId]);
+  }, [status, isHost, players, localId, lightOn]);
 
-  const updateLocalState = (pos: Vector3, rot: Vector3) => {
+  const updateLocalState = useCallback((pos: Vector3, rot: Vector3) => {
     localPlayerRef.current.position = pos;
     localPlayerRef.current.rotation = rot;
-  };
+  }, []);
 
   return {
     peerId,
@@ -225,6 +247,8 @@ export const useP2P = (localId: string) => {
     players,
     hostGame,
     joinGame,
-    updateLocalState
+    updateLocalState,
+    lightOn,
+    toggleLight
   };
 };
