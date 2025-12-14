@@ -12,6 +12,23 @@ import { Users, Wifi, Copy, Play, User } from 'lucide-react';
 
 const LOCAL_ID = generateShortId();
 
+const Crosshair = () => (
+  <div 
+    style={{
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      width: '10px',
+      height: '10px',
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      borderRadius: '50%',
+      transform: 'translate(-50%, -50%)',
+      pointerEvents: 'none',
+      zIndex: 20,
+    }} 
+  />
+);
+
 const App: React.FC = () => {
   const { 
     peerId, 
@@ -55,7 +72,7 @@ const App: React.FC = () => {
 
   if (!hasJoined) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white font-sans">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white font-sans relative z-50">
         <div className="w-full max-w-md p-8 bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
           <h1 className="text-3xl font-bold mb-2 text-center bg-gradient-to-r from-green-400 to-red-500 bg-clip-text text-transparent">
             Holiday 3D Room
@@ -138,6 +155,8 @@ const App: React.FC = () => {
 
   return (
     <div className="w-full h-full relative">
+      <Crosshair />
+      
       {/* HUD Overlay */}
       <div className="absolute top-4 left-4 z-10 p-4 bg-black/60 backdrop-blur-md rounded-lg text-white border border-white/10 min-w-[200px]">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
