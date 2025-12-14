@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import { PointerLockControls, Html } from '@react-three/drei';
@@ -30,9 +30,9 @@ const Crosshair = () => (
 
 const Loader = () => (
   <Html center>
-    <div className="flex flex-col items-center justify-center bg-black/80 p-4 rounded text-white">
+    <div className="flex flex-col items-center justify-center bg-black/80 p-4 rounded text-white min-w-[150px]">
       <div className="loader mb-2"></div>
-      <p>Loading Physics & World...</p>
+      <p className="text-sm">Loading Physics...</p>
     </div>
   </Html>
 );
@@ -54,33 +54,13 @@ const App: React.FC = () => {
   const [username, setUsername] = useState('');
   const [hasJoined, setHasJoined] = useState(false);
 
-  const handleHost = () => {
-    if (!username) {
-        alert("Please enter a username");
-        return;
-    }
-    const newRoomId = generateShortId();
-    hostGame(newRoomId, username);
-    setHasJoined(true);
-  };
-
-  const handleJoin = () => {
-    if (!username) {
-        alert("Please enter a username");
-        return;
-    }
-    if (!roomIdInput) return;
-    joinGame(roomIdInput, username);
-    setHasJoined(true);
-  };
-
   // Filter out self from the players list for rendering remote players
   const remotePlayers = (Object.values(players) as PlayerState[]).filter(p => p.id !== LOCAL_ID);
 
   if (!hasJoined) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white font-sans relative z-50">
-        <div className="w-full max-w-md p-8 bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white font-sans z-50">
+        <div className="w-full max-w-md p-8 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 relative">
           <h1 className="text-3xl font-bold mb-2 text-center bg-gradient-to-r from-green-400 to-red-500 bg-clip-text text-transparent">
             Holiday 3D Room
           </h1>
@@ -98,20 +78,25 @@ const App: React.FC = () => {
                   placeholder="Enter your nickname"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-white"
                   maxLength={12}
                 />
             </div>
 
             <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
-              <h2 className="text-lg font-semibold mb-3 flex items-center">
+              <h2 className="text-lg font-semibold mb-3 flex items-center text-white">
                 🏠 Host a Room
               </h2>
               <button
-                onClick={handleHost}
+                onClick={() => {
+                    if (!username) return alert("Enter username");
+                    const newId = generateShortId();
+                    hostGame(newId, username);
+                    setHasJoined(true);
+                }}
                 disabled={!username}
-                className={`w-full py-3 px-4 rounded-lg font-medium transition-colors shadow-lg ${
-                    username ? 'bg-green-700 hover:bg-green-800 hover:shadow-green-500/20' : 'bg-gray-600 cursor-not-allowed'
+                className={`w-full py-3 px-4 rounded-lg font-medium transition-colors shadow-lg text-white ${
+                    username ? 'bg-green-700 hover:bg-green-800' : 'bg-gray-600 cursor-not-allowed'
                 }`}
               >
                 Create New Room
@@ -128,22 +113,27 @@ const App: React.FC = () => {
             </div>
 
             <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
-              <h2 className="text-lg font-semibold mb-3 flex items-center">
+              <h2 className="text-lg font-semibold mb-3 flex items-center text-white">
                 🔗 Join Room
               </h2>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Enter Room ID"
+                  placeholder="ROOM ID"
                   value={roomIdInput}
                   onChange={(e) => setRoomIdInput(e.target.value.toUpperCase())}
-                  className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none uppercase"
+                  className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none uppercase text-white"
                 />
                 <button
-                  onClick={handleJoin}
+                  onClick={() => {
+                     if (!username) return alert("Enter username");
+                     if (!roomIdInput) return;
+                     joinGame(roomIdInput, username);
+                     setHasJoined(true);
+                  }}
                   disabled={!username || !roomIdInput}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors shadow-lg ${
-                    username && roomIdInput ? 'bg-red-700 hover:bg-red-800 hover:shadow-red-500/20' : 'bg-gray-600 cursor-not-allowed'
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors shadow-lg text-white ${
+                    username && roomIdInput ? 'bg-red-700 hover:bg-red-800' : 'bg-gray-600 cursor-not-allowed'
                   }`}
                 >
                   Join
@@ -161,11 +151,11 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative bg-black">
       <Crosshair />
       
       {/* HUD Overlay */}
-      <div className="absolute top-4 left-4 z-10 p-4 bg-black/60 backdrop-blur-md rounded-lg text-white border border-white/10 min-w-[200px]">
+      <div className="absolute top-4 left-4 z-50 p-4 bg-black/60 backdrop-blur-md rounded-lg text-white border border-white/10 min-w-[200px] pointer-events-none select-none">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
           <div className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded-full ${status === 'connected' ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
@@ -177,7 +167,7 @@ const App: React.FC = () => {
         </div>
 
         {peerId && (
-          <div className="mb-4 bg-white/5 p-2 rounded flex items-center justify-between group">
+          <div className="mb-4 bg-white/5 p-2 rounded flex items-center justify-between pointer-events-auto">
             <div className="text-xs text-gray-400">
               Room ID: <span className="text-blue-300 font-mono text-sm ml-1 select-all">{peerId}</span>
             </div>
@@ -210,12 +200,6 @@ const App: React.FC = () => {
             </li>
           ))}
         </ul>
-
-        {errorMsg && (
-            <div className="mt-4 p-2 bg-red-500/20 border border-red-500/50 rounded text-xs text-red-200">
-                {errorMsg}
-            </div>
-        )}
         
         <div className="mt-4 pt-2 border-t border-white/10 text-[10px] text-gray-500 text-center">
             Click to Lock Mouse • WASD Move • Space Jump<br/>
@@ -224,18 +208,17 @@ const App: React.FC = () => {
       </div>
 
       {/* 3D Scene */}
-      <Canvas shadows camera={{ fov: 75 }}>
+      <Canvas shadows camera={{ fov: 75 }} className="z-0">
         <color attach="background" args={['#050810']} />
         <fog attach="fog" args={['#050810', 0, 40]} />
 
-        {/* Suspense is REQUIRED for Rapier physics to load properly without blocking the entire canvas */}
         <Suspense fallback={<Loader />}>
             <Physics gravity={[0, -9.81, 0]}>
-            <World lightOn={lightOn} onToggleLight={toggleLight} />
-            <LocalPlayer onUpdate={updateLocalState} color={players[LOCAL_ID]?.color || '#fff'} />
-            {remotePlayers.map((p) => (
-                <RemotePlayer key={p.id} data={p} />
-            ))}
+                <World lightOn={lightOn} onToggleLight={toggleLight} />
+                <LocalPlayer onUpdate={updateLocalState} color={players[LOCAL_ID]?.color || '#fff'} />
+                {remotePlayers.map((p) => (
+                    <RemotePlayer key={p.id} data={p} />
+                ))}
             </Physics>
         </Suspense>
         
