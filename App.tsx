@@ -62,7 +62,7 @@ const App: React.FC = () => {
       <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white font-sans z-50">
         <div className="w-full max-w-md p-8 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 relative">
           <h1 className="text-3xl font-bold mb-2 text-center bg-gradient-to-r from-green-400 to-red-500 bg-clip-text text-transparent">
-            Holiday 3D Room
+            Holiday 3D Room v1.1
           </h1>
           <p className="text-gray-400 text-center mb-8">Enter a cozy Christmas cabin</p>
 
